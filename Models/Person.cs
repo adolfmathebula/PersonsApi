@@ -16,5 +16,6 @@ public class Person
 
     public int GenderId { get; set; }
 
-    public Gender Gender { get; set; } = null!;
+    // public Gender Gender { get; set; } = null!;
+    public Gender? Gender { get; set; }
 }
