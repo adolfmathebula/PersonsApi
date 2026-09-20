@@ -77,4 +77,43 @@ public class PersonController : ControllerBase
             person = updatedPerson
         });
     }
+
+    [HttpPost]
+    public async Task<IActionResult> Create(Person person)
+    {
+        _context.Persons.Add(person);
+
+        await _context.SaveChangesAsync();
+
+        var createdPerson = await _context.Persons
+            .Include(p => p.Gender)
+            .FirstOrDefaultAsync(p => p.PersonId == person.PersonId);
+
+        return Ok(new
+        {
+            message = "Person added successfully",
+            person = createdPerson
+        });
+    }
+
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var person = await _context.Persons.FindAsync(id);
+
+        if (person == null)
+        {
+            return NotFound();
+        }
+
+        _context.Persons.Remove(person);
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = "Person deleted successfully"
+        });
+    }
 }
