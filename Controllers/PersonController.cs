@@ -23,7 +23,13 @@ public class PersonController : ControllerBase
             .Include(p => p.Gender)
             .ToListAsync();
 
-        return Ok(persons);
+        // return Ok(persons);
+
+        return Ok(new
+        {
+            total = persons.Count,
+            data = persons
+        });
     }
 
     [HttpGet("{id}")]
@@ -114,6 +120,21 @@ public class PersonController : ControllerBase
         return Ok(new
         {
             message = "Person deleted successfully"
+        });
+    }
+
+    [HttpGet("adults")]
+    public async Task<IActionResult> GetAdults()
+    {
+        var adults = await _context.AdultPersons
+            .ToListAsync();
+
+        // return Ok(adults);
+
+        return Ok(new
+        {
+            total = adults.Count,
+            data = adults
         });
     }
 }
