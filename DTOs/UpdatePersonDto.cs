@@ -1,11 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using PersonsAPI.Models;
 
-namespace PersonsAPI.Models;
+namespace PersonsAPI.DTOs;
 
-public class Person
+public class UpdatePersonDto
 {
-    public int PersonId { get; set; }
-
     [Required]
     [StringLength(50, MinimumLength = 2)]
     public string FirstName { get; set; } = string.Empty;
@@ -15,7 +14,7 @@ public class Person
     public string LastName { get; set; } = string.Empty;
 
     [Required]
-    [DateOfBirth] // property validation
+    [DateOfBirth]
     public DateTime? DateOfBirth { get; set; }
 
     [EmailAddress]
@@ -25,9 +24,6 @@ public class Person
     [StringLength(20)]
     public string? Phone { get; set; }
 
-    [Required]
+    [Range(1, int.MaxValue)]
     public int GenderId { get; set; }
-
-    // public Gender Gender { get; set; } = null!;
-    public Gender? Gender { get; set; }
 }

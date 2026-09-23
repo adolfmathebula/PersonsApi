@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using PersonsAPI.Data;
 using PersonsAPI.Models;
+using PersonsAPI.DTOs;
 
 namespace PersonsApi.Controllers;
 
@@ -47,13 +48,8 @@ public class PersonController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, Person person)
+    public async Task<IActionResult> Update(int id, UpdatePersonDto dto)
     {
-        if (id != person.PersonId)
-        {
-            return BadRequest();
-        }
-
         var existingPerson = await _context.Persons.FindAsync(id);
 
         if (existingPerson == null)
@@ -61,20 +57,30 @@ public class PersonController : ControllerBase
             return NotFound();
         }
 
-        existingPerson.FirstName = person.FirstName;
-        existingPerson.LastName = person.LastName;
-        existingPerson.DateOfBirth = person.DateOfBirth;
-        existingPerson.Email = person.Email;
-        existingPerson.Phone = person.Phone;
-        existingPerson.GenderId = person.GenderId;
+        var genderExists = await _context.Genders
+            .AnyAsync(g => g.GenderId == dto.GenderId);
+
+        if (!genderExists)
+        {
+            return BadRequest(new
+            {
+                message = "Invalid genderId.",
+                genderId = dto.GenderId
+            });
+        }
+
+        existingPerson.FirstName = dto.FirstName;
+        existingPerson.LastName = dto.LastName;
+        existingPerson.DateOfBirth = dto.DateOfBirth!.Value;
+        existingPerson.Email = dto.Email;
+        existingPerson.Phone = dto.Phone;
+        existingPerson.GenderId = dto.GenderId;
 
         await _context.SaveChangesAsync();
 
-        // return NoContent();
-
         var updatedPerson = await _context.Persons
-        .Include(p => p.Gender)
-        .FirstOrDefaultAsync(p => p.PersonId == id);
+            .Include(p => p.Gender)
+            .FirstOrDefaultAsync(p => p.PersonId == id);
 
         return Ok(new
         {
@@ -85,8 +91,31 @@ public class PersonController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create(Person person)
+    public async Task<IActionResult> Create(CreatePersonDto dto)
     {
+        // Validate gender
+        var genderExists = await _context.Genders
+            .AnyAsync(g => g.GenderId == dto.GenderId);
+
+        if (!genderExists)
+        {
+            return BadRequest(new
+            {
+                message = "Invalid genderId.",
+                genderId = dto.GenderId
+            });
+        }
+
+        var person = new Person
+        {
+            FirstName = dto.FirstName,
+            LastName = dto.LastName,
+            DateOfBirth = dto.DateOfBirth!.Value,
+            Email = dto.Email,
+            Phone = dto.Phone,
+            GenderId = dto.GenderId
+        };
+
         _context.Persons.Add(person);
 
         await _context.SaveChangesAsync();
