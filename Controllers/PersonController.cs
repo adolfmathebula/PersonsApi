@@ -1,11 +1,14 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using PersonsAPI.DTOs;
 using PersonsAPI.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PersonsApi.Controllers;
 
-[Route("api/[controller]")]
+[Authorize] // authenticated user is required to access the controller.
 [ApiController]
+[Route("api/[controller]")]
+
 public class PersonController : ControllerBase
 {
     private readonly IPersonService _personService;
@@ -90,6 +93,7 @@ public class PersonController : ControllerBase
         });
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {

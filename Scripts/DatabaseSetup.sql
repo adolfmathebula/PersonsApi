@@ -135,3 +135,24 @@ BEGIN
     );
 END
 GO
+
+-- Create app_user Table
+
+USE persons;
+GO
+
+CREATE TABLE app_user
+(
+    user_id INT IDENTITY(1,1) PRIMARY KEY,
+    username VARCHAR(50) NOT NULL,
+    password_hash VARCHAR(500) NOT NULL,
+    role VARCHAR(20) NOT NULL
+        CONSTRAINT DF_app_user_role DEFAULT 'User'
+);
+GO
+
+-- Create Unique Index on username
+
+CREATE UNIQUE INDEX UX_app_user_username
+ON app_user(username);
+GO

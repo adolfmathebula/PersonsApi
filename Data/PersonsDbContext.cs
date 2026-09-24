@@ -16,6 +16,8 @@ public class PersonsDbContext : DbContext
 
     public DbSet<AdultPerson> AdultPersons { get; set; }
 
+    public DbSet<User> Users { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Person>(entity =>
@@ -92,6 +94,28 @@ public class PersonsDbContext : DbContext
 
             entity.Property(p => p.Gender)
                 .HasColumnName("gender");
+        });
+
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.ToTable("app_user");
+
+            entity.HasKey(u => u.UserId);
+
+            entity.Property(u => u.UserId)
+                .HasColumnName("user_id");
+
+            entity.Property(u => u.Username)
+                .HasColumnName("username");
+
+            entity.Property(u => u.PasswordHash)
+                .HasColumnName("password_hash");
+
+            entity.Property(u => u.Role)
+                .HasColumnName("role");
+
+            entity.HasIndex(u => u.Username)
+                .IsUnique();
         });
     }
 }
