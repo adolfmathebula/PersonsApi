@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PersonsAPI.Data;
+using PersonsAPI.Services;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +13,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.UnmappedMemberHandling =
             JsonUnmappedMemberHandling.Disallow;
     }) ;
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -19,6 +21,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<PersonsDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("PersonsDatabase")));
+
+builder.Services.AddScoped<IPersonService, PersonService>(); //DI
 
 var app = builder.Build();
 

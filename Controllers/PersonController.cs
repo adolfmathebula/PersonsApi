@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using PersonsAPI.Data;
-using PersonsAPI.Models;
 using PersonsAPI.DTOs;
+using PersonsAPI.Services;
 
 namespace PersonsApi.Controllers;
 
@@ -10,21 +8,17 @@ namespace PersonsApi.Controllers;
 [ApiController]
 public class PersonController : ControllerBase
 {
-    private readonly PersonsDbContext _context;
+    private readonly IPersonService _personService;
 
-    public PersonController(PersonsDbContext context)
+    public PersonController(IPersonService personService)
     {
-        _context = context;
+        _personService = personService;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var persons = await _context.Persons
-            .Include(p => p.Gender)
-            .ToListAsync();
-
-        // return Ok(persons);
+        var persons = await _personService.GetAllAsync();
 
         return Ok(new
         {
@@ -36,68 +30,22 @@ public class PersonController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var person = await _context.Persons
-            .Include(p => p.Gender)
-            .FirstOrDefaultAsync(p => p.PersonId == id);
+        var person = await _personService.GetByIdAsync(id);
 
         if (person == null)
         {
             return NotFound();
         }
+
         return Ok(person);
-    }
-
-    [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, UpdatePersonDto dto)
-    {
-        var existingPerson = await _context.Persons.FindAsync(id);
-
-        if (existingPerson == null)
-        {
-            return NotFound();
-        }
-
-        var genderExists = await _context.Genders
-            .AnyAsync(g => g.GenderId == dto.GenderId);
-
-        if (!genderExists)
-        {
-            return BadRequest(new
-            {
-                message = "Invalid genderId.",
-                genderId = dto.GenderId
-            });
-        }
-
-        existingPerson.FirstName = dto.FirstName;
-        existingPerson.LastName = dto.LastName;
-        existingPerson.DateOfBirth = dto.DateOfBirth!.Value;
-        existingPerson.Email = dto.Email;
-        existingPerson.Phone = dto.Phone;
-        existingPerson.GenderId = dto.GenderId;
-
-        await _context.SaveChangesAsync();
-
-        var updatedPerson = await _context.Persons
-            .Include(p => p.Gender)
-            .FirstOrDefaultAsync(p => p.PersonId == id);
-
-        return Ok(new
-        {
-            message = "Person updated successfully",
-            id = updatedPerson?.PersonId,
-            person = updatedPerson
-        });
     }
 
     [HttpPost]
     public async Task<IActionResult> Create(CreatePersonDto dto)
     {
-        // Validate gender
-        var genderExists = await _context.Genders
-            .AnyAsync(g => g.GenderId == dto.GenderId);
+        var result = await _personService.CreateAsync(dto);
 
-        if (!genderExists)
+        if (result.Status == PersonServiceStatus.InvalidGender)
         {
             return BadRequest(new
             {
@@ -106,45 +54,51 @@ public class PersonController : ControllerBase
             });
         }
 
-        var person = new Person
-        {
-            FirstName = dto.FirstName,
-            LastName = dto.LastName,
-            DateOfBirth = dto.DateOfBirth!.Value,
-            Email = dto.Email,
-            Phone = dto.Phone,
-            GenderId = dto.GenderId
-        };
-
-        _context.Persons.Add(person);
-
-        await _context.SaveChangesAsync();
-
-        var createdPerson = await _context.Persons
-            .Include(p => p.Gender)
-            .FirstOrDefaultAsync(p => p.PersonId == person.PersonId);
-
         return Ok(new
         {
             message = "Person added successfully",
-            person = createdPerson
+            person = result.Data
         });
     }
 
-
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(
+        int id,
+        UpdatePersonDto dto)
     {
-        var person = await _context.Persons.FindAsync(id);
+        var result = await _personService.UpdateAsync(id, dto);
 
-        if (person == null)
+        if (result.Status == PersonServiceStatus.NotFound)
         {
             return NotFound();
         }
 
-        _context.Persons.Remove(person);
+        if (result.Status == PersonServiceStatus.InvalidGender)
+        {
+            return BadRequest(new
+            {
+                message = "Invalid genderId.",
+                genderId = dto.GenderId
+            });
+        }
 
-        await _context.SaveChangesAsync();
+        return Ok(new
+        {
+            message = "Person updated successfully",
+            id = result.Data?.PersonId,
+            person = result.Data
+        });
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var deleted = await _personService.DeleteAsync(id);
+
+        if (!deleted)
+        {
+            return NotFound();
+        }
 
         return Ok(new
         {
@@ -155,10 +109,7 @@ public class PersonController : ControllerBase
     [HttpGet("adults")]
     public async Task<IActionResult> GetAdults()
     {
-        var adults = await _context.AdultPersons
-            .ToListAsync();
-
-        // return Ok(adults);
+        var adults = await _personService.GetAdultsAsync();
 
         return Ok(new
         {
