@@ -5,6 +5,8 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using PersonsAPI.Models;
+using PersonsAPI.Authorization;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +30,7 @@ builder.Services.AddDbContext<PersonsDbContext>(options =>
 builder.Services.AddScoped<IPersonService, PersonService>(); //DI
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+builder.Services.AddProblemDetails();
 
 // JWT
 builder.Services
@@ -50,7 +53,20 @@ builder.Services
         };
     });
 
-builder.Services.AddAuthorization();
+// builder.Services.AddAuthorization();
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(
+        AppPolicies.AdminOnly,
+        policy => policy.RequireRole(AppRoles.Admin));
+
+    options.AddPolicy(
+        AppPolicies.ManagerOrAdmin,
+        policy => policy.RequireRole(
+            AppRoles.Manager,
+            AppRoles.Admin));
+});
 
 var app = builder.Build();
 
@@ -62,6 +78,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseExceptionHandler(); //catch unhandled exceptions and return a ProblemDetails response
 
 app.UseAuthentication();
 app.UseAuthorization();

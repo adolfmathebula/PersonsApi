@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using PersonsAPI.Authorization;
 using PersonsAPI.DTOs;
+using PersonsAPI.Models;
 using PersonsAPI.Services;
-using Microsoft.AspNetCore.Authorization;
 
 namespace PersonsApi.Controllers;
 
@@ -23,11 +25,23 @@ public class PersonController : ControllerBase
     {
         var persons = await _personService.GetAllAsync();
 
+        return Ok(new ApiResponse<PersonListResponse<Person>>
+        {
+            Success = true,
+            Message = "Persons retrieved successfully",
+            Data = new PersonListResponse<Person>
+            {
+                Total = persons.Count,
+                Data = persons
+            }
+        });
+        /*
         return Ok(new
         {
             total = persons.Count,
             data = persons
         });
+        */
     }
 
     [HttpGet("{id}")]
@@ -37,10 +51,19 @@ public class PersonController : ControllerBase
 
         if (person == null)
         {
-            return NotFound();
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Person not found",
+                detail: $"Person with ID {id} was not found.");
         }
 
-        return Ok(person);
+        // return Ok(person);
+        return Ok(new ApiResponse<Person>
+        {
+            Success = true,
+            Message = "Person retrieved successfully",
+            Data = person
+        });
     }
 
     [HttpPost]
@@ -50,20 +73,21 @@ public class PersonController : ControllerBase
 
         if (result.Status == PersonServiceStatus.InvalidGender)
         {
-            return BadRequest(new
-            {
-                message = "Invalid genderId.",
-                genderId = dto.GenderId
-            });
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Invalid gender",
+                detail: $"Gender ID {dto.GenderId} does not exist.");
         }
 
-        return Ok(new
+        return Ok(new ApiResponse<Person>
         {
-            message = "Person added successfully",
-            person = result.Data
+            Success = true,
+            Message = "Person added successfully",
+            Data = result.Data
         });
     }
 
+    [Authorize(Policy = AppPolicies.ManagerOrAdmin)]
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(
         int id,
@@ -73,27 +97,37 @@ public class PersonController : ControllerBase
 
         if (result.Status == PersonServiceStatus.NotFound)
         {
-            return NotFound();
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Person not found",
+                detail: $"Person with ID {id} was not found.");
         }
 
         if (result.Status == PersonServiceStatus.InvalidGender)
         {
-            return BadRequest(new
-            {
-                message = "Invalid genderId.",
-                genderId = dto.GenderId
-            });
-        }
+            //return BadRequest(new
+            //{
+            //    message = "Invalid genderId.",
+            //    genderId = dto.GenderId
+            //});
 
-        return Ok(new
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Invalid gender",
+                detail: $"Gender ID {dto.GenderId} does not exist.");
+         }
+
+        return Ok(new ApiResponse<Person>
         {
-            message = "Person updated successfully",
-            id = result.Data?.PersonId,
-            person = result.Data
+            Success = true,
+            Message = "Person updated successfully",
+            Data = result.Data
         });
     }
 
-    [Authorize(Roles = "Admin")]
+    // [Authorize(Roles = "Admin")]
+
+    [Authorize(Policy = AppPolicies.AdminOnly)]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
@@ -101,12 +135,16 @@ public class PersonController : ControllerBase
 
         if (!deleted)
         {
-            return NotFound();
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Person not found",
+                detail: $"Person with ID {id} was not found.");
         }
 
-        return Ok(new
+        return Ok(new ApiResponse<object>
         {
-            message = "Person deleted successfully"
+            Success = true,
+            Message = "Person deleted successfully"
         });
     }
 
@@ -115,10 +153,15 @@ public class PersonController : ControllerBase
     {
         var adults = await _personService.GetAdultsAsync();
 
-        return Ok(new
+        return Ok(new ApiResponse<PersonListResponse<AdultPerson>>
         {
-            total = adults.Count,
-            data = adults
+            Success = true,
+            Message = "Adult persons retrieved successfully",
+            Data = new PersonListResponse<AdultPerson>
+            {
+                Total = adults.Count,
+                Data = adults
+            }
         });
     }
 }
